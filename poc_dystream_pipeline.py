@@ -94,5 +94,5 @@ def run_dystream_pipeline(text, character_image_path):
 
 if __name__ == "__main__":
     sample_text = "こんにちは！DyStreamで動くキャラクターです。"
-    sample_image = "assets/sensei_base.jpg"
+    sample_image = "assets/rin1.jpg"
     run_dystream_pipeline(sample_text, sample_image)
