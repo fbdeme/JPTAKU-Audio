@@ -2,8 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging
@@ -32,10 +30,13 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+
+# uv
+uv.lock
 
 # Environment variables
 .env
-.venv
 
 # IDEs
 .idea/
@@ -43,11 +44,30 @@ venv.bak/
 *.swp
 *.swo
 
-# Project Specific
+# Project Specific - Models & Outputs (too large for git)
 pretrained_models/
 outputs/
+model_assets/
 *.mp4
+
+# WAV files (except reference voices)
 *.wav
+!assets/reference_voice/**/*.wav
+
+# External repos (cloned separately, not submodules)
+GPT-SoVITS/
+LAM_Audio2Expression/
+SkyReels-A1/
+
+# THA4 model weights
+THA4/data/tha4/*.pt
+THA4/data/character_models/*/face_morpher.pt
+THA4/data/character_models/*/body_morpher.pt
+THA4/data/pose_dataset.pt
+
+# HuggingFace cache
+.cache/
+*.tar
 
 # OS generated files
 .DS_Store

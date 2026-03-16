@@ -1,0 +1,31 @@
+--- a/src/tha4/poser/modes/mode_07.py
++++ b/src/tha4/poser/modes/mode_07.py
+@@ FiveStepPoserComputationProtocol.__init__
+-    def __init__(self, eyebrow_morphed_image_index: int):
++    def __init__(self, eyebrow_morphed_image_index: int, skip_eyebrow: bool = False):
+         super().__init__()
+         self.eyebrow_morphed_image_index = eyebrow_morphed_image_index
++        self.skip_eyebrow = skip_eyebrow
+
+@@ face_morpher section
+         elif key == Network.face_morpher.outputs_key:
+-            eyebrow_morphing_combiner_output = self.get_output(
+-                Network.eyebrow_morphing_combiner.outputs_key, state)
+-            eyebrow_morphed_image = eyebrow_morphing_combiner_output[self.eyebrow_morphed_image_index]
++            if self.skip_eyebrow:
++                pass
++            else:
++                eyebrow_morphing_combiner_output = self.get_output(
++                    Network.eyebrow_morphing_combiner.outputs_key, state)
++                eyebrow_morphed_image = eyebrow_morphing_combiner_output[self.eyebrow_morphed_image_index]
+             input_image = state.batch[0][:, :, 32:32 + 192, (32 + 128):(32 + 192 + 128)].clone()
+-            input_image[:, :, 32:32 + 128, 32:32 + 128] = eyebrow_morphed_image
++            if not self.skip_eyebrow:
++                input_image[:, :, 32:32 + 128, 32:32 + 128] = eyebrow_morphed_image
+
+@@ create_poser function
+-def create_poser(device, module_file_names=None, eyebrow_morphed_image_index=..., default_output_index=0):
++def create_poser(device, module_file_names=None, eyebrow_morphed_image_index=..., default_output_index=0, skip_eyebrow=False):
+     ...
+-    output_list_func=FiveStepPoserComputationProtocol(eyebrow_morphed_image_index).compute_func(),
++    output_list_func=FiveStepPoserComputationProtocol(eyebrow_morphed_image_index, skip_eyebrow=skip_eyebrow).compute_func(),

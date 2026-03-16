@@ -1,0 +1,63 @@
+[project]
+name = "jptaku-audio"
+version = "0.1.0"
+description = "Interactive Japanese Tutor Avatar - TTS + Expression + 2D Animation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+
+dependencies = [
+    # Core
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
+    "torchvision>=0.21.0",
+    "numpy<2",
+
+    # TTS (GPT-SoVITS dependencies)
+    "pyopenjtalk>=0.4.1",
+    "g2p_en",
+    "pypinyin",
+    "cn2an",
+    "LangSegment",
+    "fast-langdetect",
+    "funasr==1.0.27",
+    "peft",
+    "ffmpeg-python",
+
+    # Expression (LAM-Audio2Expression)
+    "librosa>=0.10.2",
+    "soundfile",
+    "transformers>=4.36",
+    "addict",
+    "yapf",
+    "termcolor",
+
+    # Rendering (THA4)
+    "scipy",
+    "einops",
+    "omegaconf",
+    "Pillow",
+
+    # Web & API
+    "gradio<5",
+    "openai",
+    "python-dotenv",
+    "requests",
+    "imageio",
+    "imageio-ffmpeg",
+    "opencv-python-headless",
+    "pykakasi",
+
+    # Model download
+    "huggingface_hub",
+    "modelscope",
+    "datasets",
+
+    # Style-Bert-VITS2 (for reference audio generation)
+    "style-bert-vits2>=2.5.0",
+]
+
+[tool.uv]
+find-links = [
+    "https://download.pytorch.org/whl/cu124",
+]

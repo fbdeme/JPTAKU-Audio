@@ -1,107 +1,221 @@
-# JPTAKU-Audio: CosyVoice3 Few-Shot Inference
+# JPTAKU-Audio: Interactive Japanese Tutor Avatar
 
-**CosyVoice3** (`Fun-CosyVoice3-0.5B`) 모델로 **Japanese-Eroge-Voice-V2** 데이터셋을 활용한 Few-shot (Zero-shot) 일본어 음성 합성 프로젝트입니다.
+Real-time interactive Japanese tutor with anime character animation, powered by:
 
-## 프로젝트 구조
+- **GPT-SoVITS v2ProPlus** - Japanese TTS with zero-shot voice cloning
+- **LAM-Audio2Expression** - Audio to ARKit 52 BlendShape prediction
+- **THA4** - Talking Head Anime 4 real-time 2D rendering
+- **OpenAI GPT-4o-mini** - Japanese tutor LLM
+
+## Architecture
+
+```
+User Input (text)
+    |
+    v
+[GPT-4o-mini] --- Japanese tutor response
+    |
+    v
+[GPT-SoVITS v2ProPlus] --- TTS (zero-shot voice cloning, RTF ~0.014)
+    |  Reference: VOICEVOX Kasukabe Tsumugi
+    v
+[LAM-Audio2Expression] --- Audio -> ARKit 52 BlendShapes @ 30fps
+    |
+    v
+[THA4 ifacialmocap converter] --- ARKit 52 -> THA4 45 params
+    |
+    v
+[THA4 Renderer] --- 2D anime animation @ 48fps (distilled) / 12fps (teacher)
+    |
+    v
+Video + Audio output (Gradio web UI)
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Linux with NVIDIA GPU (RTX 3090+ recommended)
+- Python 3.12
+- CUDA 12.x
+
+### 1. Clone and setup
+
+```bash
+git clone --recursive https://github.com/<your-username>/JPTAKU-Audio.git
+cd JPTAKU-Audio
+
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create environment and install dependencies
+uv sync
+```
+
+### 2. Download models
+
+```bash
+# GPT-SoVITS pretrained models
+uv run python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('lj1995/GPT-SoVITS', local_dir='GPT-SoVITS/GPT_SoVITS/pretrained_models',
+                  allow_patterns=['*.ckpt','*.pth','*.bin','*.json','*.txt','*.model'])
+"
+
+# LAM-Audio2Expression
+cd LAM_Audio2Expression
+uv run python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('3DAIGC/LAM_audio2exp', local_dir='./')
+"
+tar -xzf LAM_audio2exp_assets.tar
+tar -xzf LAM_audio2exp_streaming.tar
+cd ..
+
+# THA4 teacher models
+wget -O /tmp/tha4-models.zip "https://www.dropbox.com/scl/fi/7wec0sur7449iqgtlpi3n/tha4-models.zip?rlkey=0f9d1djmbvjjjn09469s1adx8&dl=1"
+unzip /tmp/tha4-models.zip -d THA4/data/tha4/
+
+# VOICEVOX reference voice (optional - pre-generated samples included)
+# Install VOICEVOX locally and generate reference audio, or use included samples
+```
+
+### 3. Setup environment
+
+```bash
+# Create .env file
+cat > .env << 'EOF'
+OPENAI_API_KEY="your-openai-api-key-here"
+EOF
+```
+
+### 4. Start GPT-SoVITS API server
+
+```bash
+cd GPT-SoVITS
+uv run python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml
+```
+
+### 5. Start interactive tutor
+
+```bash
+cd THA4
+uv run python app_tutor.py
+# Open http://localhost:7860
+```
+
+## Project Structure
 
 ```
 JPTAKU-Audio/
-├── CosyVoice/                  # CosyVoice 레포지토리 (git clone)
-├── pretrained_models/          # 다운로드된 모델 (자동 생성)
-│   └── Fun-CosyVoice3-0.5B/
-├── outputs/                    # 생성된 오디오 파일 (자동 생성)
-├── venv/                       # Python 가상환경
-├── setup.sh                    # 환경 구축 스크립트
-├── download_model.py           # 모델 다운로드 스크립트
-├── run_inference.py            # Few-shot 추론 메인 스크립트
-└── requirements.txt            # 패키지 의존성
+├── THA4/                           # Talking Head Anime 4 (2D rendering)
+│   ├── app_tutor.py                # Main interactive tutor app (Gradio)
+│   ├── poc_lam_pipeline.py         # LAM -> THA4 pipeline PoC
+│   ├── poc_audio_to_anime.py       # DiffPoseTalk -> THA4 pipeline PoC
+│   ├── poc_full_pipeline.py        # Full text->speech->animation pipeline
+│   ├── src/tha4/                   # THA4 engine (modified for skip_eyebrow)
+│   └── data/character_models/      # Distilled character models
+├── GPT-SoVITS/                     # Japanese TTS with voice cloning
+│   ├── api_v2.py                   # TTS API server
+│   └── GPT_SoVITS/pretrained_models/
+├── LAM_Audio2Expression/           # Audio to facial expression
+│   ├── inference.py
+│   └── pretrained_models/
+├── CosyVoice/                      # (Legacy) CosyVoice3 TTS
+├── DyStream/                       # (Legacy) DyStream video generation
+├── SkyReels-A1/                    # (Legacy) SkyReels-A1 video generation
+├── assets/
+│   ├── character_base.png          # Character image (original)
+│   ├── rin_full.png                # Character image (full body, transparent BG)
+│   └── reference_voice/            # TTS reference audio
+│       ├── tsumugi/                # VOICEVOX Kasukabe Tsumugi samples
+│       ├── sbv2_f2/                # Style-Bert-VITS2 F2 samples
+│       ├── oneesan/                # Oneesan-style samples
+│       └── clean/                  # Clean SBV2-generated samples
+├── .env                            # API keys (gitignored)
+├── pyproject.toml                  # uv project config
+└── README.md
 ```
 
-## 설치 방법
+## Component Details
 
-### 1. 자동 설치 (macOS)
-```bash
-bash setup.sh
+### TTS: GPT-SoVITS v2ProPlus
+
+- **License**: MIT
+- **Japanese**: Native support via pyopenjtalk g2p
+- **Voice cloning**: Zero-shot (5s reference) + Few-shot (1min fine-tune)
+- **Speed**: RTF 0.014 on RTX 4090 (v2ProPlus)
+- **Current voice**: VOICEVOX Kasukabe Tsumugi (bright, cheerful girl)
+- **API**: HTTP server on port 9880
+
+### Expression: LAM-Audio2Expression
+
+- **License**: Apache 2.0
+- **Output**: 52 ARKit BlendShape coefficients @ 30fps
+- **Speed**: ~0.03s per 10s audio (real-time capable)
+- **Streaming**: 1-second chunk processing supported
+
+### Rendering: THA4
+
+- **License**: Code MIT / Models CC-BY-NC-4.0
+- **Input**: 512x512 RGBA character image + 45 pose parameters
+- **Speed**: 48fps (distilled) / 12fps (teacher model)
+- **Modification**: Added `skip_eyebrow` mode to prevent artifacts on certain character styles
+
+### LLM: OpenAI GPT-4o-mini
+
+- Persona: "Rin" - friendly Japanese tutor
+- System prompt configurable in `app_tutor.py`
+- Responds in Japanese, 50 characters max
+
+## PoC Scripts
+
+| Script | Description |
+|--------|-------------|
+| `THA4/app_tutor.py` | **Main app** - Interactive tutor with Gradio UI |
+| `THA4/poc_lam_pipeline.py` | LAM -> THA4 animation pipeline |
+| `THA4/poc_full_pipeline.py` | Text -> TTS -> Expression -> Animation |
+| `THA4/poc_audio_to_anime.py` | DiffPoseTalk FLAME -> THA4 bridge |
+| `DyStream/run_anime_poc.py` | DyStream anime character PoC |
+| `SkyReels-A1/inference_audio_anime.py` | SkyReels-A1 anime bypass |
+
+## Technology Evaluation History
+
+During development, multiple approaches were evaluated:
+
+| Approach | Result |
+|----------|--------|
+| **DyStream** | Works for real faces, anime causes style corruption (LIA renderer trained on real faces) |
+| **SkyReels-A1** | High quality for real faces, MediaPipe blocks anime faces, 2min/4s on RTX 3090 |
+| **DiffPoseTalk + THA4** | Works but FLAME PCA coefficients lack semantic meaning for reliable mapping |
+| **LAM-A2E + THA4** | Best approach - ARKit 52 BlendShapes are semantic, THA4 has built-in converter |
+| **CosyVoice3 TTS** | Chinese text frontend corrupts Japanese pronunciation |
+| **GPT-SoVITS TTS** | Native Japanese support, zero-shot cloning, RTF 0.014 |
+| **Style-Bert-VITS2** | MOS 4.37 quality but no voice cloning (used for generating clean reference audio) |
+
+## Customization
+
+### Change voice character
+
+Edit `THA4/app_tutor.py`:
+```python
+REF_AUDIO = "path/to/reference.wav"       # 3-10 second reference audio
+REF_PROMPT_TEXT = "transcript of reference"  # What the reference says
 ```
 
-### 2. 자동 설치 (vast.ai / Linux GPU 환경)
-```bash
-bash setup_vastai.sh
-```
+### Change anime character
 
-### 3. 수동 설치
-```bash
-# Python 3.10 venv 생성
-python3.10 -m venv venv
-source venv/bin/activate
+Replace `THA4/data/character_models/<name>/character.png` with a 512x512 RGBA image.
+For teacher model (any character): use `--teacher` flag.
+For distilled model (faster): run THA4 distillation (~30hrs on A6000).
 
-# PyTorch 설치 (macOS CPU/MPS)
-pip install torch==2.3.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cpu
-# 배포 환경 (GPU)라면 아래 명령어로 설치하세요:
-# pip install torch==2.3.1 torchaudio==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
+### Change tutor persona
 
-# 기타 의존성 설치
-pip install -r requirements.txt
-```
+Edit `SYSTEM_PROMPT` in `THA4/app_tutor.py`.
 
-## 모델 다운로드
+## Requirements
 
-```bash
-source venv/bin/activate
-python download_model.py
-```
-
-> 모델 크기: 약 3~5GB. HuggingFace에서 자동 다운로드됩니다.
-> 인터넷 연결이 필요하며, 필요시 `huggingface-cli login`을 먼저 실행하세요.
-
-## 추론 실행
-
-```bash
-source venv/bin/activate
-
-# 기본 실행 (데이터셋에서 3개 샘플 추론)
-python run_inference.py
-
-# 샘플 수 지정
-python run_inference.py --num_samples 5
-
-# 특정 합성 텍스트 지정
-python run_inference.py --target_text "こんにちは、今日はいい天気ですね。" --num_samples 3
-
-# 데이터셋 offset 지정 (다른 화자 샘플 사용)
-python run_inference.py --dataset_offset 100 --num_samples 3
-```
-
-## 옵션 설명
-
-| 옵션 | 기본값 | 설명 |
-|------|--------|------|
-| `--num_samples` | 3 | 추론할 샘플 수 |
-| `--output_dir` | `outputs` | 출력 디렉토리 |
-| `--model_dir` | `pretrained_models/Fun-CosyVoice3-0.5B` | 모델 경로 |
-| `--target_text` | None | 합성할 텍스트 (미지정시 레퍼런스 텍스트 사용) |
-| `--dataset_split` | `train` | 데이터셋 split |
-| `--dataset_offset` | 0 | 데이터셋 시작 offset |
-
-## 데이터셋 정보
-
-**NandemoGHS/Japanese-Eroge-Voice-V2**
-- 총 클립 수: 1,033,142개
-- 총 오디오: 약 2,657시간
-- 평균 길이: 9.26초
-- 컬럼: `audio`, `text`, `text_source`, `sampling_rate`, `char_id`
-
-## Few-shot 추론 원리
-
-CosyVoice3의 **Zero-shot Voice Cloning** 기능을 활용합니다:
-1. 데이터셋에서 **reference audio** (2~30초)와 **prompt text** 추출
-2. `inference_zero_shot()` 호출: 레퍼런스 화자의 음색/운율을 학습
-3. `target_text`를 레퍼런스 화자의 목소리로 합성
-4. `outputs/*.wav`에 저장
-
-## 요구사항
-
-- macOS (Apple Silicon / Intel)
-- Python 3.10
-- RAM 8GB+ (16GB 권장)
-- 저장공간 10GB+
+- NVIDIA GPU with 8GB+ VRAM (24GB recommended for all models)
+- ~50GB disk space (all models)
+- Python 3.12
+- CUDA 12.x
