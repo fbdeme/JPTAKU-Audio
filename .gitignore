@@ -12,7 +12,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -58,6 +57,21 @@ model_assets/
 GPT-SoVITS/
 LAM_Audio2Expression/
 SkyReels-A1/
+Audio2Face-3D-SDK/
+
+# A2F Docker runtime data
+a2f-docker/a2f-3d-init-data/
+
+# A2F PoC output
+scripts/a2f_poc/blendshapes.json
+
+# Flutter build artifacts
+app/build/
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/ios/Pods/
 
 # THA4 model weights
 THA4/data/tha4/*.pt

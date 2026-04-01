@@ -61,3 +61,8 @@ dependencies = [
 find-links = [
     "https://download.pytorch.org/whl/cu124",
 ]
+
+[tool.uv.workspace]
+members = [
+    "scripts/a2f_poc",
+]
