@@ -4,47 +4,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JPTAKU-Audio is an interactive Japanese tutor avatar that chains: **User text → GPT-4o-mini (LLM) → GPT-SoVITS (TTS) → LAM-Audio2Expression (facial BlendShapes) → THA4 (2D anime rendering) → Gradio UI**. The tutor persona is "Rin" (凛), a friendly Japanese-speaking character.
+JPTAKU-Audio is an interactive Japanese tutor companion app that chains: **User text → GPT-4o-mini (LLM) → OpenAI TTS → NVIDIA Audio2Face-3D (facial BlendShapes) → WebSocket → Flutter + Rive (2D character animation)**. The tutor persona is "凛 (Rin)", a friendly Japanese-speaking character.
 
 ## Key Commands
 
 ```bash
-# Install dependencies (preferred)
+# Install dependencies
 uv sync
 
-# Full environment setup from scratch (clones external repos, downloads models, etc.)
-bash scripts/setup_full.sh
+# Start A2F-3D Docker (first time takes ~5 min for TensorRT compilation)
+cd a2f-docker && A2F_3D_MODEL_NAME=claire docker compose up -d
 
-# Start GPT-SoVITS TTS API server (must run first, in separate terminal)
-cd GPT-SoVITS && uv run python api_v2.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml
+# Start chat server (HTTP :8080 + WebSocket :8765)
+cd scripts/a2f_poc && uv run python chat_server.py --port 8080 --ws-port 8765
 
-# Start the main interactive tutor app (Gradio on :7860)
-cd THA4 && uv run python app_tutor.py
+# Build & serve Flutter web frontend
+cd app && flutter build web --pwa-strategy none
+python3 -m http.server 7860 --directory build/web
+
+# Standalone A2F test (audio → blendshapes JSON)
+cd scripts/a2f_poc && uv run python main.py --a2f ../../assets/reference_voice/tsumugi/tsumugi_04.wav -o blendshapes.json
 ```
 
 ## Architecture
 
-- **pipeline/** — Source-of-truth for app and PoC scripts. `setup_full.sh` copies these into `THA4/` at setup time.
-  - `app_tutor.py` — Main Gradio app (chat → LLM → TTS → expression → animation loop)
-  - `poc_lam_pipeline.py`, `poc_full_pipeline.py`, `poc_audio_to_anime.py` — Standalone PoC pipelines
-  - `tha4_mode07_skip_eyebrow.patch` — Patch for THA4 to prevent eyebrow artifacts on certain character styles
-- **External repos** (cloned by `setup_full.sh`, gitignored, not submodules):
-  - `GPT-SoVITS/` — TTS server (HTTP API on port 9880)
-  - `LAM_Audio2Expression/` — Audio → ARKit 52 BlendShape coefficients
-  - `THA4/` — 2D anime renderer (512x512 RGBA + 45 pose params)
-- **Git submodules** (legacy, kept for reference): `CosyVoice/`, `DyStream/`
-- **assets/reference_voice/** — TTS reference audio samples for voice cloning (Kasukabe Tsumugi is the active voice)
+- **scripts/a2f_poc/** — Backend PoC scripts
+  - `chat_server.py` — Main server: aiohttp HTTP + websockets WS, LLM → TTS → A2F → WS streaming
+  - `main.py` — Standalone A2F-3D gRPC client (audio → blendshapes.json)
+  - `ws_server.py` — BlendShape replay server (for testing without A2F)
+- **app/** — Flutter frontend
+  - `lib/main.dart` — Chat UI + Rive character + WebSocket client + BlendShapeMapper
+  - `assets/*.riv` — Rive character files (JcToon facial_expression, Talking Avatar)
+  - `web_poc/` — Standalone HTML+JS PoC (no Flutter dependency)
+- **a2f-docker/** — NVIDIA Audio2Face-3D Docker Compose setup + configs
+- **pipeline/** — Legacy: THA4-based pipeline scripts (source-of-truth for old Gradio app)
+- **assets/reference_voice/** — TTS reference audio samples
 
 ## Important Details
 
-- Python 3.12, CUDA 12.x, NVIDIA GPU required (RTX 3090+ recommended, 24GB VRAM for all models)
-- `.python-version` says 3.10 (legacy CosyVoice setup) but `pyproject.toml` requires >=3.12 — use 3.12
-- GPT-SoVITS runs as a **separate process** (HTTP API), not imported directly
-- LAM and THA4 are imported directly into `app_tutor.py` via sys.path manipulation
-- `app_tutor.py` stubs out `wx` module at import time to avoid GUI dependency from THA4
-- The `.env` file (gitignored) holds `OPENAI_API_KEY`
-- The `agent_handoff_to_unity.md` is a handoff spec for a separate Unity frontend project (JPTAKU-Unity)
+- Python 3.12, CUDA 12.x+, NVIDIA GPU required
+- A2F-3D runs as Docker container (`nvcr.io/nim/nvidia/audio2face-3d:1.3`), gRPC on port 52000
+- `.env` (gitignored) holds `OPENAI_API_KEY` and `NGC_API_KEY`
+- A2F outputs PascalCase BlendShape names (JawOpen, MouthSmileLeft) — BlendShapeMapper handles conversion
+- JcToon Rive character uses expression categories (Happy/Sad/Surprised/Angry, 0-100 range) — needs aggressive scaling (x200-500) from A2F values (0-0.7 range)
+- Talking Avatar character has non-standard inputs (mouth hight, kelopakmata f Slider) — mapping attempted but limited
+- Production requires custom Rive character rigged with ARKit BlendShape names for 1:1 mapping
 - Comments and docs mix Korean (개발 notes) and Japanese (tutor persona/prompts)
+- Legacy code: pipeline/app_tutor.py (Gradio + THA4), agent_handoff_to_unity.md (Unity spec)
 
 ## docs/ — 프로젝트 문서 (작업 시 반드시 업데이트)
 

@@ -13,24 +13,30 @@
 - Gradio 기반 인터랙티브 튜터 앱 완성 (pipeline/app_tutor.py)
 - 레퍼런스 보이스 대량 추가, 환경 재현 스크립트 작성
 
-## 2026-04-01: 방향 전환 — 컴패니언 앱
+## 2026-04-01: 방향 전환 — 컴패니언 앱 + PoC 파이프라인 완성
 
 - 이미지 기반 캐릭터 조절 → 컴패니언 앱으로 전환
-- 프론트엔드: Unity → Flutter
-- 렌더링: THA4 → Rive (Live2D는 Flutter 지원 부족)
-- 모션 엔진: LAM → NVIDIA Audio2Face-3D로 변경 결정
-  - A2F가 감정 감지, 립싱크 정확도, 일본어 지원, 성능 모두 우위
-- Rive 조사 완료: Additive Blend State + Number Input으로 퍼펫팅 가능 확인
-- 공개 Rive 캐릭터 조사: JcToon Facial Expression Demo를 PoC 타겟으로 선정
-- PoC 작업 시작: Flutter + Rive + A2F-3D 파이프라인
-- Flutter 3.32.0 설치, `app/` 프로젝트 생성, rive 0.14.4 패키지 추가
-- JcToon Facial Expression + Talking Avatar .riv 파일 다운로드
-- Rive v0.14 API 파악: RiveWidgetController + stateMachine.number() 패턴
-- 슬라이더 UI로 Rive 캐릭터 표정 수동 제어 앱 구현 (web 빌드 성공)
+- 프론트엔드: Unity → Flutter, 렌더링: THA4 → Rive, 모션: LAM → A2F-3D
+- Rive 조사, LAM vs A2F-3D 비교 → A2F-3D 선택
+- Flutter 프로젝트 생성 (app/), Rive 0.14.4 패키지 연동
 - A2F-3D Docker 컨테이너 설정 (nvcr.io/nim/nvidia/audio2face-3d:1.3)
-  - NGC API Key로 인증, claire 모델, TensorRT 엔진 자동 컴파일
-  - gRPC 서비스 localhost:52000
-- **일본어 오디오(tsumugi_04.wav) → ARKit 55 BlendShape 추출 성공**
-  - 5.19초 오디오에서 156프레임(30fps) 생성
-  - JawOpen, MouthPucker, BrowOuterUp 등 의미 있는 값 확인
-  - scripts/a2f_poc/main.py — gRPC 클라이언트 완성
+- 일본어 오디오 → ARKit 55 BlendShape 추출 성공 (156프레임/5.2초)
+- Python WebSocket 서버 구현 (scripts/a2f_poc/ws_server.py)
+- Flutter WebSocket 클라이언트 + BlendShapeMapper 구현
+- 첫 커밋 & 푸시 (0599181)
+
+## 2026-04-02: 채팅 파이프라인 완성 + E2E PoC 성공
+
+- 채팅 서버 구현 (scripts/a2f_poc/chat_server.py)
+  - aiohttp 기반 HTTP + websockets 라이브러리 WS (별도 포트)
+  - 텍스��� → GPT-4o-mini → OpenAI TTS → A2F-3D → WS 스트리밍
+- Flutter 채팅 UI 구현 (채팅 버블, 음성 재생, Replay 기능)
+- BlendShapeMapper: A2F PascalCase → JcToon 표정(Happy/Sad/Surprised/Angry) 매핑
+  - A2F 값이 0-0.7 범위라 공격적 스케일링 적용 (x200~500)
+- Talking Avatar 캐릭터 시도 → input 이름 불일치로 표정 반영 실패
+  - Talking Avatar inputs: mouth hight, mouth witdh, kelopakmata f Slider 등
+  - 매핑 추가했으나 캐릭터 자체 리깅 한계로 효과 미미
+- JcToon 캐릭터로 복원 → **채팅 + 음성 + 표정 ��화 E2E PoC 성공**
+- 교훈: 공개 Rive 캐릭터는 리깅 구조가 다 달라서 매핑 커스텀 필요
+  - 프로덕션에서는 ARKit BlendShape 1:1 매핑 가능한 캐릭터 직접 리깅 필요
+- JS Web PoC도 별도 작성 (app/web_poc/) — 브라우저 WS 동작 검증용
