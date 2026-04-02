@@ -2,7 +2,7 @@
   "mcpServers": {
     "godot-mcp": {
       "command": "node",
-      "args": ["/root/mg/Godot-MCP/server/dist/index.js"]
+      "args": ["/root/mg/JPTAKU/godot-mcp-rigging/server/dist/index.js"]
     }
   }
 }
