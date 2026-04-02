@@ -40,3 +40,59 @@
 - 교훈: 공개 Rive 캐릭터는 리깅 구조가 다 달라서 매핑 커스텀 필요
   - 프로덕션에서는 ARKit BlendShape 1:1 매핑 가능한 캐릭터 직접 리깅 필요
 - JS Web PoC도 별도 작성 (app/web_poc/) — 브라우저 WS 동작 검증용
+
+## 2026-04-02: 캐릭터 자동 생성 파이프라인 R&D 시작
+
+- **프로덕션 캐릭터 부재 문제** — 디자이너 없이 캐릭터를 만들 방법 필요
+- Rive Editor 유료 + 수작업 → 오픈소스 대안 조사
+
+### 기술 조사 결과
+
+**오픈소스 2D 에디터 비교:**
+- Godot Engine (MIT) — 유일하게 현실적인 후보
+  - AnimationTree 상태 머신 내장 (Rive State Machine과 동일 역할)
+  - MCP 브릿지 다수 존재 (ee0pdt/Godot-MCP 518 stars, GodotIQ, Godot MCP Pro 등)
+  - Web(Wasm) 내보내기 프로덕션급, Flutter 임베딩(FlutDot) 가능
+  - AI 에이전트(Claude Code) 연동 가능 — MCP 프로토콜로 에디터 제어
+- Inochi2D (BSD-2) — Live2D 대안, 메쉬 변형 방식이지만 Flutter/Web 런타임 없음
+- Blender (GPL) — Python API 강력하지만 런타임 없음 (제작 도구 전용)
+- Synfig, DragonBones, OpenToonz — 상태 머신 없거나 에디터 비공개
+
+**See-through (shitagaki-lab/see-through, SIGGRAPH 2026):**
+- Apache-2.0, 일러스트 → 최대 24개 의미론적 레이어 PSD 자동 분할
+- SDXL 기반, RTX 3090/4090에서 테스트됨, 이미지당 ~84초
+- 가려진 부분 인페인팅 자동 처리 (LaMa)
+- 레이어 분할까지만 — 리깅 자동화는 아직 세상에 없음
+
+**Godot MCP 브릿지 비교:**
+- ee0pdt/Godot-MCP (MIT, 518 stars) — 19개 도구, 확장 구조 좋음
+- GodotIQ (MIT+$19 Pro) — 36개 도구, 애니메이션 읽기만
+- Godot MCP Pro ($5) — 163개 도구, AnimationTree 생성 가능하지만 유료
+- 결론: ee0pdt/Godot-MCP fork하여 2D 리깅 특화 도구 추가 방향
+
+### 결정 사항
+
+- **방향**: Claude Code + Godot MCP로 "바이브 코딩" 스타일 캐릭터 리깅
+  - Claude Code가 MCP 프로토콜로 Godot 에디터를 직접 제어
+  - 사용자가 에디터 보면서 자연어로 지시, AI가 실행
+- **파이프라인**: 일러스트 → See-through (레이어 분할) → Godot (AI 협업 리깅) → Web Export
+- **MCP 서버**: ee0pdt/Godot-MCP fork → Skeleton2D/Bone2D, Animation, AnimationTree 도구 확장
+
+### 구현 완료
+
+**Godot MCP 서버 확장 (18개 새 도구):**
+- ee0pdt/Godot-MCP (MIT, 518 stars) 클론 후 2D 리깅 특화 도구 추가
+- **리깅 도구 8개**: create_skeleton2d, add_bone2d, create_bone_chain, get_skeleton_info, bind_polygon2d_to_skeleton, set_bone2d_rest, create_sprite_with_texture, setup_ik_chain
+- **애니메이션 도구 10개**: create_animation_player, create_animation, add_animation_track, set_animation_keyframe, list_animations, get_animation_info, create_animation_tree, add_state_machine_state, add_state_machine_transition, set_blend_tree_parameter
+- GDScript 커맨드 프로세서: rigging_commands.gd, animation_commands.gd
+- TypeScript MCP 도구 정의: rigging_tools.ts, animation_tools.ts
+
+**noVNC 기반 Godot 에디터 웹 접속 구축:**
+- Xvfb :99 (가상 디스플레이 1920x1080) + x11vnc + noVNC(:6080)
+- Godot 4.4.1 에디터가 Vulkan + RTX A6000 GPU 가속으로 동작
+- 브라우저에서 http://localhost:6080/vnc.html 로 에디터 접속
+
+**E2E 테스트 성공:**
+- Claude Code → MCP(WS:9080) → Godot Editor 명령 전달 검증
+- create_skeleton2d → add_bone2d → create_bone_chain → get_skeleton_info 전체 흐름 성공
+- Godot 에디터에서 CharacterSkeleton > Hip > Spine_0/1/2 노드 실시간 생성 확인

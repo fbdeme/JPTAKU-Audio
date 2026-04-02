@@ -20,6 +20,25 @@
 - 공개 Rive 캐릭터마다 리깅 구조가 달라 범용 매핑 불가능
 - 결론: 프로덕션 캐릭터는 직접 리깅하되 ARKit 이름으로 input 설계
 
+### ISS-008: Rive → Godot 전환 검토
+- Rive Editor 유료 + 디자이너 부재로 캐릭터 제작 불가
+- Godot Engine으로 전환 시 고려사항:
+  - Godot 2D 애니메이션은 뼈대(Skeleton) 기반 — Rive/Live2D의 메쉬 변형과 다른 방식
+  - 부드러운 변형이 필요하면 커스텀 셰이더 또는 Inochi2D Godot 바인딩 필요
+  - FlutDot(Flutter 내 Godot 임베딩)은 실험적 단계
+- A2F ARKit BlendShape → Godot 파라미터 매핑 방법 미검증
+
+### ISS-009: Godot MCP 브릿지에 2D 리깅 도구 없음 → 해결
+- ee0pdt/Godot-MCP fork하여 리깅 8개 + 애니메이션 10개 도구 직접 구현
+- Skeleton2D/Bone2D/IK + AnimationPlayer/AnimationTree/StateMachine 전체 지원
+- E2E 테스트 성공 (Claude Code → MCP → Godot 에디터 실시간 반영)
+
+### ISS-010: See-through → 리깅 자동화 갭
+- See-through는 레이어 분할만 제공 (리깅 없음, 저자 명시)
+- PSD 레이어 → Godot Sprite2D 임포트 → 본 바인딩까지 자동화 스크립트 필요
+- 캐릭터별 체형/포즈/비율이 달라 완전 범용 자동 리깅은 매우 어려움
+- 단계적 접근: 표준 템플릿 기반 반자동 → AI 보조로 정밀도 개선
+
 ## Resolved
 
 ### ISS-003: ARKit → Rive 매핑 전례 없음 → PoC로 검증 완료

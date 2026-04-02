@@ -39,6 +39,23 @@ User Input (text)
 - **A2F-3D 일본어 지원**: JawOpen 0-0.8, MouthPucker 0-0.5 등 세밀한 값 추출
 - **핵심 과제**: 프로덕션용 Rive 캐릭터 리깅 (ARKit BlendShape 1:1 매핑)
 
+## 캐릭터 자동 생성 파이프라인 (R&D)
+
+디자이너 없이 AI 에이전트(Claude Code)와 협업하여 캐릭터를 제작하는 시스템.
+
+```
+[일러스트] → [See-through] → [Godot + Claude Code MCP] → [Web Export]
+  AI 생성       24개 레이어       AI 협업 리깅            Wasm 배포
+  or 업로드     PSD 자동 분할     자연어로 지시
+```
+
+| 레이어 | 도구 | 역할 |
+|--------|------|------|
+| 레이어 분할 | See-through (SIGGRAPH 2026, Apache-2.0) | 일러스트 → 24개 의미론적 레이어 PSD |
+| 리깅 에디터 | Godot Engine (MIT) | Skeleton2D, AnimationTree, Web Export |
+| AI 에이전트 | Claude Code + Godot MCP | 에디터를 MCP로 제어, 사용자와 협업 |
+| MCP 서버 | ee0pdt/Godot-MCP fork (MIT) | 2D 리깅 특화 도구 확장 |
+
 ## 레거시 (폐기된 접근법)
 - Unity 프론트엔드 → Flutter로 전환
 - THA4 렌더링 → Rive로 전환
