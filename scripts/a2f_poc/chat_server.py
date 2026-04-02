@@ -1,6 +1,6 @@
 """
 JPTAKU Chat Server — Full pipeline on single port:
-  Text → GPT-4o-mini → OpenAI TTS → A2F-3D BlendShapes → WebSocket stream
+  Text → GPT-4o-mini → CosyVoice3 TTS → A2F-3D BlendShapes → WebSocket stream
 
 HTTP + WebSocket both on same port (8080).
 
@@ -12,17 +12,48 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 import tempfile
 import time
 import wave
 from pathlib import Path
 
 import aiohttp.web
+import pykakasi
 import websockets
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+
+# ── CosyVoice3 Setup ──────────────────────────────────────────────────────────
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+COSYVOICE_DIR = PROJECT_ROOT / "CosyVoice"
+MATCHA_DIR = COSYVOICE_DIR / "third_party" / "Matcha-TTS"
+sys.path.insert(0, str(COSYVOICE_DIR))
+sys.path.insert(0, str(MATCHA_DIR))
+
+MODEL_DIR = str(PROJECT_ROOT / "pretrained_models" / "Fun-CosyVoice3-0.5B")
+REF_AUDIO = str(PROJECT_ROOT / "assets" / "reference_voice" / "ref_00.wav")
+
+kks = pykakasi.kakasi()
+cosyvoice_model = None
+
+
+def to_katakana(text: str) -> str:
+    result = kks.convert(text)
+    return "".join([item["kana"] for item in result])
+
+
+def get_cosyvoice_model():
+    global cosyvoice_model
+    if cosyvoice_model is None:
+        from cosyvoice.cli.cosyvoice import CosyVoice3
+        print(f"[CosyVoice3] Loading model from {MODEL_DIR}...")
+        cosyvoice_model = CosyVoice3(MODEL_DIR)
+        print("[CosyVoice3] Model loaded!")
+    return cosyvoice_model
 
 SYSTEM_PROMPT = """あなたは「凛（りん）」という名前の日本語チューターです。
 性格: 落ち着いた優しいお姉さんタイプ。丁寧だけど親しみやすい。
@@ -58,10 +89,24 @@ def call_llm(user_text: str) -> str:
 
 
 def call_tts(text: str, output_path: str) -> str:
-    response = openai_client.audio.speech.create(
-        model="tts-1", voice="nova", input=text, response_format="wav",
-    )
-    response.write_to_file(output_path)
+    import soundfile as sf
+
+    model = get_cosyvoice_model()
+    text_kata = to_katakana(text)
+
+    output_list = list(model.inference_zero_shot(
+        tts_text=text_kata + "<|endofprompt|>",
+        prompt_text=to_katakana("こんにちは、今日はどうでしたか？") + "<|endofprompt|>",
+        prompt_wav=REF_AUDIO,
+        stream=False,
+    ))
+
+    if not output_list:
+        raise RuntimeError("CosyVoice3 TTS output is empty")
+
+    audio_tensor = output_list[0]["tts_speech"]
+    # audio_tensor shape: (1, samples) → (samples,) numpy
+    sf.write(output_path, audio_tensor.squeeze(0).cpu().numpy(), model.sample_rate)
     return output_path
 
 

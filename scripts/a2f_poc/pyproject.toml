@@ -1,7 +1,7 @@
 [project]
 name = "jptaku-a2f"
 version = "0.1.0"
-description = "Audio2Face-3D PoC - Audio to ARKit BlendShapes"
+description = "JPTAKU Chat Server - CosyVoice3 TTS + A2F-3D BlendShapes"
 requires-python = ">=3.12"
 dependencies = [
     "nvidia-audio2face-3d>=1.3.0",
@@ -13,4 +13,7 @@ dependencies = [
     "openai>=2.30.0",
     "python-dotenv>=1.2.2",
     "aiohttp>=3.13.5",
+    "pykakasi",
+    "torchaudio>=2.6.0",
+    "torch>=2.6.0",
 ]

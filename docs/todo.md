@@ -2,6 +2,7 @@
 
 ## In Progress
 
+- [ ] 레퍼런스 음성 선택 인터페이스 구현 (음성 품질이 레퍼런스에 크게 좌우됨)
 - [ ] See-through 로컬 설치 + 테스트
 - [ ] PSD 임포트 + BlendShape 매핑 MCP 도구 추가
 
@@ -10,9 +11,8 @@
 - [ ] See-through PSD → Godot 자동 임포트 스크립트
 - [ ] A2F ARKit BlendShape → Godot AnimationTree 파라미터 매핑
 - [ ] Godot Web Export(Wasm) → 기존 파이프라인 연동
-- [ ] GPT-SoVITS TTS로 교체 (OpenAI TTS → 로컬, 보이스 클로닝)
 - [ ] 오디오 재생 + 표정 타이밍 정밀 싱크
-- [ ] 응답 지연 최적화 (현재 ~5초 → 목표 1-2초)
+- [ ] 응답 지연 최적화 (현재 ~14초 → 목표 1-2초, TTS RTF 1.25가 병목)
 - [ ] Flutter 모바일 빌드 (Android/iOS)
 - [ ] Flutter WebSocket 연동 안정화 (현재 web_socket_channel 사용)
 
@@ -30,6 +30,10 @@
 - [x] 채팅 서버 (LLM + TTS + A2F + WS 통합)
 - [x] Flutter 채팅 UI + 음성 재생 + Rive 표정 구동
 - [x] **E2E PoC 성공: 텍스트 → LLM → TTS → A2F → WS → Flutter Rive 표정 변화**
+- [x] TTS 로컬화: OpenAI TTS → CosyVoice3 few-shot (chat_server.py)
+- [x] 레거시 정리: DyStream, pipeline/, poc_*.py, setup scripts 등 삭제
+- [x] CosyVoice3 서브모듈 + 모델 다운로드 + 의존성 해결
+- [x] CosyVoice3 E2E 테스트 성공 (2차 요청 14.4초, 172/217 BlendShape 프레임)
 - [x] Godot MCP 서버 구축 (ee0pdt/Godot-MCP fork + 18개 2D 리깅/애니메이션 도구)
 - [x] Godot 4.4.1 설치 + noVNC 웹 에디터 접속 환경 구축
 - [x] MCP 연동 E2E 테스트 (Claude Code → MCP → Godot 에디터 실시간 반영)

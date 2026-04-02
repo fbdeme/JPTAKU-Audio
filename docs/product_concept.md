@@ -10,7 +10,7 @@ User Input (text)
     ↓
 [GPT-4o-mini] — 일본어 튜터 응답 생성 (~1.6s)
     ↓
-[OpenAI TTS] — 음성 합성 (~1.7s, 추후 GPT-SoVITS로 교체)
+[CosyVoice3] — 음성 합성 (few-shot, 로컬 GPU)
     ↓
 [NVIDIA Audio2Face-3D] — 오디오 → ARKit 55 BlendShapes (~2s, Docker 로컬)
     ↓ (WebSocket, 30fps)
@@ -22,7 +22,7 @@ User Input (text)
 | 레이어 | PoC | 프로덕션 예정 |
 |--------|-----|-------------|
 | LLM | GPT-4o-mini | GPT-4o-mini |
-| TTS | OpenAI TTS (nova) | GPT-SoVITS (로컬, 보이스 클로닝) |
+| TTS | CosyVoice3 few-shot (로컬) | CosyVoice3 (레퍼런스 음성 교체로 커스텀) |
 | Expression | NVIDIA A2F-3D Docker | NVIDIA A2F-3D |
 | Backend | aiohttp + websockets (Python) | 동일 |
 | Frontend | Flutter Web (PoC) | Flutter Mobile (Android/iOS) |
@@ -32,7 +32,7 @@ User Input (text)
 - **이름**: 凛 (Rin)
 - **성격**: 차분하고 다정한 언니 타입
 - **스타일**: 애니메 2D (Rive로 렌더링)
-- **음성**: OpenAI TTS nova (PoC), VOICEVOX Kasukabe Tsumugi 예정
+- **음성**: CosyVoice3 few-shot (ref_00.wav 레퍼런스)
 
 ## PoC 결과 요약 (2026-04-02)
 - **E2E 파이프라인 동작 확인**: 텍스트 → LLM → TTS → A2F → WS → Rive 표정 변화
@@ -62,4 +62,6 @@ User Input (text)
 - LAM-Audio2Expression → NVIDIA A2F-3D로 전환
 - Live2D → Flutter 지원 부족으로 Rive 선택
 - DyStream, SkyReels-A1 → 실사 얼굴 전용, 애니메 불가
-- CosyVoice3 → 중국어 프론트엔드가 일본어 발음 깨뜨림
+- CosyVoice3 초기 시도 → 중국어 프론트엔드 문제 있었으나 가타카나 변환으로 해결
+- OpenAI TTS → 로컬 CosyVoice3로 교체 (외부 API 의존성 제거)
+- GPT-SoVITS → CosyVoice3로 통합 (별도 API 서버 불필요)

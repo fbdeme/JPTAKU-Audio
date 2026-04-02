@@ -96,3 +96,14 @@
 - Claude Code → MCP(WS:9080) → Godot Editor 명령 전달 검증
 - create_skeleton2d → add_bone2d → create_bone_chain → get_skeleton_info 전체 흐름 성공
 - Godot 에디터에서 CharacterSkeleton > Hip > Spine_0/1/2 노드 실시간 생성 확인
+
+## 2026-04-02: TTS 로컬화 + 레거시 정리
+
+- **TTS 교체**: OpenAI TTS(nova) → CosyVoice3 few-shot (로컬 모델)
+  - chat_server.py에서 CosyVoice3 inference_zero_shot() 직접 호출
+  - 가타카나 변환(pykakasi) 적용, ref_00.wav 레퍼런스 음성 사용
+  - 외부 API 의존성 제거 (TTS 부분), GPU 로컬 추론
+- **레거시 파일 대량 정리**:
+  - 삭제: DyStream 서브모듈, pipeline/ 전체 (THA4+LAM+GPT-SoVITS+Gradio)
+  - 삭제: poc_*.py 4개, setup scripts, requirements.txt, agent_handoff_to_unity.md
+  - pyproject.toml 의존성 정리 (GPT-SoVITS, LAM, THA4, Gradio 등 제거)

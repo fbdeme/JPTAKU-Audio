@@ -12,8 +12,9 @@
 - 발음별 정확도는 프로덕션 캐릭터에서 시각적으로 검증 필요
 
 ### ISS-006: 응답 지연 ~5초
-- LLM ~1.6초 + TTS ~1.7초 + A2F ~2초 = 순차 ~5초
-- 개선: TTS+A2F 스트리밍 병렬화, 로컬 TTS(GPT-SoVITS) 전환 시 ~1-2초 가능
+- LLM ~1.6초 + TTS + A2F = 순차 ~5초
+- TTS를 CosyVoice3 로컬로 전환 완료 — 네트워크 지연 제거됨
+- 추가 개선: TTS+A2F 스트리밍 병렬화 필요
 
 ### ISS-007: Talking Avatar 캐릭터 매핑 실패
 - input 이름이 비표준 (mouth hight, kelopakmata f Slider 등)
@@ -32,6 +33,11 @@
 - ee0pdt/Godot-MCP fork하여 리깅 8개 + 애니메이션 10개 도구 직접 구현
 - Skeleton2D/Bone2D/IK + AnimationPlayer/AnimationTree/StateMachine 전체 지원
 - E2E 테스트 성공 (Claude Code → MCP → Godot 에디터 실시간 반영)
+
+### ISS-011: CosyVoice3 음성 품질이 레퍼런스에 크게 좌우됨
+- 현재 ref_00.wav 하나로 고정 — 음성 결과가 부자연스러울 수 있음
+- 레퍼런스 음성 선택/미리듣기 인터페이스 필요
+- assets/reference_voice/ 아래 7개 카테고리 40+개 wav 존재하지만 비교/선택 수단 없음
 
 ### ISS-010: See-through → 리깅 자동화 갭
 - See-through는 레이어 분할만 제공 (리깅 없음, 저자 명시)
